@@ -103,14 +103,30 @@
     if (d.getDate() < 10) d.setMonth(d.getMonth()-1);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   }
-  const currentKey = monthKey(todayStr);
-  const [cycleYear, cycleMonth] = currentKey.split("-").map(Number);
-  const start = new Date(cycleYear, cycleMonth-1, 10);
-  const end = new Date(cycleYear, cycleMonth, 9);
-  const startStr = dateString(start);
-  const endStr = dateString(end);
-  const totalDays = Math.round((end-start)/86400000)+1;
-  const daysLeft = Math.max(1, Math.round((end-today)/86400000)+1);
+  const anchor = new Date(2026, 10, 10); // 10 noiembrie 2026
+const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+let start;
+if (todayOnly < anchor) {
+  start = anchor;
+} else {
+  let offset =
+    (todayOnly.getFullYear() - anchor.getFullYear()) * 12 +
+    todayOnly.getMonth() - anchor.getMonth();
+
+  start = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 10);
+  if (todayOnly < start) {
+    offset--;
+    start = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 10);
+  }
+}
+
+const end = new Date(start.getFullYear(), start.getMonth() + 1, 9);
+const currentKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
+const startStr = dateString(start);
+const endStr = dateString(end);
+const totalDays = Math.round((end - start) / 86400000) + 1;
+const daysLeft = Math.max(1, Math.round((end - todayOnly) / 86400000) + 1);
 
   const defaults = {
     "Hidroelectrica":400, "Apa Nova":350, "Engie":500,
