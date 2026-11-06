@@ -194,4 +194,221 @@
   );
 
   const defaults = {
-   
+    "Hidroelectrica": 400,
+    "Apa Nova": 350,
+    "Engie": 500,
+    "Digi": 300,
+    "Google": 10,
+    "Economii": 100,
+    "Mâncare": 3000
+  };
+
+  let data = {};
+  try {
+    data = JSON.parse(localStorage.getItem(DATA_KEY)) || {};
+  } catch (error) {
+    data = {};
+  }
+
+  if (!data.settings) data.settings = {};
+  if (!data.records) data.records = [];
+
+  function save() {
+    localStorage.setItem(DATA_KEY, JSON.stringify(data));
+  }
+
+  function getSettingsForPeriod() {
+    if (data.settings[currentKey]) {
+      return data.settings[currentKey];
+    }
+
+    const previousStart = new Date(start.getFullYear(), start.getMonth() - 1, 10);
+    const previousKey = monthKey(previousStart);
+
+    data.settings[currentKey] = {
+      ...(data.settings[previousKey] || defaults)
+    };
+
+    save();
+    return data.settings[currentKey];
+  }
+
+  const settings = getSettingsForPeriod();
+
+  function lei(number) {
+    return Number(number).toLocaleString("ro-RO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) + " lei";
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, character => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[character]));
+  }
+
+  function spentInCategory(category) {
+    return data.records
+      .filter(record =>
+        record.date >= startStr &&
+        record.date <= endStr &&
+        record.category === category
+      )
+      .reduce((sum, record) => sum + Number(record.amount), 0);
+  }
+
+  function renderSettings() {
+    $("settings").innerHTML = "";
+
+    Object.entries(settings).forEach(([name, value]) => {
+      const row = document.createElement("label");
+      row.className = "setting";
+
+      const title = document.createElement("span");
+      title.textContent = `${name} (lei)`;
+
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "0.01";
+      input.value = Number(value);
+      input.setAttribute("aria-label", `${name} buget`);
+
+      input.addEventListener("input", () => {
+        settings[name] = Math.max(0, Number(input.value) || 0);
+        save();
+        render();
+      });
+
+      row.append(title, input);
+      $("settings").append(row);
+    });
+  }
+
+  function render() {
+    $("period").textContent =
+      `Perioada ${start.toLocaleDateString("ro-RO")} – ${end.toLocaleDateString("ro-RO")}`;
+
+    $("savingView").textContent = lei(settings["Economii"] || 0);
+
+    const billNames = [
+      "Hidroelectrica",
+      "Apa Nova",
+      "Engie",
+      "Digi",
+      "Google"
+    ];
+
+    const billsTotal = billNames.reduce(
+      (sum, name) => sum + Number(settings[name] || 0),
+      0
+    );
+
+    const foodBudget = Number(settings["Mâncare"] || 0);
+    const savings = Number(settings["Economii"] || 0);
+    const otherBudget = SALARY - billsTotal - savings - foodBudget;
+
+    const foodRemaining = foodBudget - spentInCategory("Mâncare");
+    const otherRemaining = otherBudget - spentInCategory("Alte cheltuieli");
+
+    $("foodLeft").textContent = lei(foodRemaining);
+    $("foodDaily").textContent = lei(foodRemaining / daysLeft);
+    $("otherLeft").textContent = lei(otherRemaining);
+    $("otherDaily").textContent = lei(otherRemaining / daysLeft);
+
+    if (otherBudget < 0) {
+      $("budgetMessage").textContent =
+        `Atenție: facturile și bugetele depășesc salariul cu ${lei(-otherBudget)}.`;
+      $("budgetMessage").className = "warn";
+    } else {
+      $("budgetMessage").textContent =
+        `Bugetul pentru alte cheltuieli este ${lei(otherBudget)}. Zile rămase în perioadă: ${daysLeft}.`;
+      $("budgetMessage").className = "muted";
+    }
+
+    const records = data.records
+      .filter(record => record.date >= startStr && record.date <= endStr)
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    $("list").innerHTML = "";
+
+    if (records.length === 0) {
+      $("list").innerHTML =
+        '<p class="muted">Încă nu ai adăugat cheltuieli în această perioadă.</p>';
+      return;
+    }
+
+    records.forEach(record => {
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const info = document.createElement("div");
+      info.innerHTML =
+        `<strong>${escapeHtml(record.category)}</strong><br>` +
+        `<small>${escapeHtml(record.date)}${record.note ? " · " + escapeHtml(record.note) : ""}</small>`;
+
+      const right = document.createElement("div");
+      right.style.textAlign = "right";
+
+      const amount = document.createElement("strong");
+      amount.textContent = lei(record.amount);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.className = "delete";
+      deleteButton.textContent = "Șterge";
+      deleteButton.addEventListener("click", () => {
+        data.records = data.records.filter(item => item.id !== record.id);
+        save();
+        render();
+      });
+
+      right.append(amount, deleteButton);
+      item.append(info, right);
+      $("list").append(item);
+    });
+  }
+
+  $("date").value = todayStr;
+  renderSettings();
+  render();
+
+  $("form").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const date = $("date").value;
+    const amount = Number($("amount").value);
+
+    if (date < startStr || date > endStr) {
+      alert(`Alege o dată din perioada ${startStr} – ${endStr}.`);
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Introdu o sumă mai mare decât zero.");
+      return;
+    }
+
+    data.records.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      category: $("category").value,
+      amount,
+      date,
+      note: $("note").value.trim()
+    });
+
+    save();
+    $("amount").value = "";
+    $("note").value = "";
+    $("date").value = todayStr;
+    render();
+  });
+</script>
+</body>
+</html>
