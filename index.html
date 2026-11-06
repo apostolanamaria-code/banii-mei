@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banii mei</title>
+  <style>
+    body{font:16px Arial,sans-serif;margin:0;background:#f3f5f4;color:#17221c}
+    main{max-width:520px;margin:auto;padding:20px}
+    h1{margin-bottom:6px} .muted{color:#647067}
+    .card{background:white;border-radius:16px;padding:16px;margin:14px 0;
+      box-shadow:0 2px 10px #0000000c}
+    .totals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .total{background:#eef7f0;border-radius:12px;padding:12px}
+    label{display:block;margin:12px 0 5px}
+    input,select,button{box-sizing:border-box;width:100%;padding:12px;
+      border:1px solid #ccd5ce;border-radius:10px;font-size:16px;background:white}
+    button{background:#167344;color:white;border:0;font-weight:bold;margin-top:14px}
+    .item{display:flex;justify-content:space-between;gap:10px;
+      border-top:1px solid #eee;padding:12px 0}
+    .delete{width:auto;padding:6px 10px;margin:0;background:#f3e9e9;color:#7a2929}
+    .income{color:#167344}.expense{color:#b33b35}
+  </style>
+</head>
+<body>
+<main>
+  <h1>💰 Banii mei</h1>
+  <div class="muted">Venituri și cheltuieli, într-un singur loc</div>
+
+  <section class="card">
+    <label for="month">Luna</label>
+    <input id="month" type="month">
+    <div class="totals">
+      <div class="total">Venituri<br><strong id="income">0,00 lei</strong></div>
+      <div class="total">Cheltuieli<br><strong id="expense">0,00 lei</strong></div>
+    </div>
+    <p>Sold: <strong id="balance">0,00 lei</strong></p>
+  </section>
+
+  <form class="card" id="form">
+    <label for="type">Tip</label>
+    <select id="type"><option value="expense">Cheltuială</option>
+      <option value="income">Venit</option></select>
+
+    <label for="amount">Sumă (lei)</label>
+    <input id="amount" type="number" min="0.01" step="0.01"
+      placeholder="Ex.: 25,50" required>
+
+    <label for="category">Categorie</label>
+    <select id="category">
+      <option>Mâncare</option><option>Locuință</option><option>Transport</option>
+      <option>Sănătate</option><option>Facturi</option><option>Salariu</option>
+      <option>Cumpărături</option><option>Altele</option>
+    </select>
+
+    <label for="date">Data</label>
+    <input id="date" type="date" required>
+
+    <label for="note">Notă (opțional)</label>
+    <input id="note" type="text" placeholder="Ex.: cumpărături">
+
+    <button type="submit">Adaugă înregistrarea</button>
+  </form>
+
+  <section class="card">
+    <h2>Înregistrări</h2>
+    <div id="list"></div>
+  </section>
+</main>
+
+<script>
+  const key = "banii-mei-v1";
+  const $ = id => document.getElementById(id);
+  let records = JSON.parse(localStorage.getItem(key) || "[]");
+
+  const today = new Date();
+  $("date").value = today.toISOString().slice(0, 10);
+  $("month").value = today.toISOString().slice(0, 7);
+
+  function lei(n) {
+    return n.toLocaleString("ro-RO", {minimumFractionDigits:2,
+      maximumFractionDigits:2}) + " lei";
+  }
+
+  function render() {
+    const month = $("month").value;
+    const rows = records.filter(r => r.date.startsWith(month));
+    const income = rows.filter(r => r.type === "income")
+      .reduce((s,r) => s + r.amount, 0);
+    const expense = rows.filter(r => r.type === "expense")
+      .reduce((s,r) => s + r.amount, 0);
+
+    $("income").textContent = lei(income);
+    $("expense").textContent = lei(expense);
+    $("balance").textContent = lei(income - expense);
+
+    $("list").innerHTML = rows.length ? "" : '<p class="muted">Nicio înregistrare pentru luna aceasta.</p>';
+    rows.slice().reverse().forEach(r => {
+      const row = document.createElement("div");
+      row.className = "item";
+      const info = document.createElement("div");
+      info.innerHTML = `<strong>${r.category}</strong><br><small>${r.date}${r.note ? " · " + escapeHtml(r.note) : ""}</small>`;
+      const right = document.createElement("div");
+      right.style.textAlign = "right";
+      const amount = document.createElement("span");
+      amount.className = r.type;
+      amount.textContent = (r.type === "income" ? "+" : "−") + lei(r.amount);
+      const del = document.createElement("button");
+      del.className = "delete";
+      del.textContent = "Șterge";
+      del.onclick = () => {
+        records = records.filter(x => x.id !== r.id);
+        save();
+      };
+      right.append(amount, document.createElement("br"), del);
+      row.append(info, right);
+      $("list").append(row);
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  function save() {
+    localStorage.setItem(key, JSON.stringify(records));
+    render();
+  }
+
+  $("form").addEventListener("submit", e => {
+    e.preventDefault();
+    records.push({
+      id: crypto.randomUUID(),
+      type: $("type").value,
+      amount: Number($("amount").value),
+      category: $("category").value,
+      date: $("date").value,
+      note: $("note").value.trim()
+    });
+    save();
+    $("form").reset();
+    $("date").value = today.toISOString().slice(0, 10);
+  });
+
+  $("month").addEventListener("change", render);
+  render();
+</script>
+</body>
+</html>
