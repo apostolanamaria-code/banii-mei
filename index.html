@@ -6,27 +6,79 @@
   <meta name="theme-color" content="#176b45">
   <title>Bugetul meu</title>
   <style>
-    *{box-sizing:border-box}
-    body{margin:0;background:#f3f6f4;color:#17221c;font:16px Arial,sans-serif}
-    main{max-width:600px;margin:auto;padding:18px}
-    h1{margin:8px 0}.muted,small{color:#657168}
-    .card{background:#fff;border-radius:16px;padding:16px;margin:14px 0;
-      box-shadow:0 2px 10px #0000000d}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .stat{background:#eef7f0;border-radius:12px;padding:12px}
-    .stat strong{display:block;margin-top:6px;font-size:19px}
-    label{display:block;margin:12px 0 5px}
-    input,select,button{width:100%;padding:12px;border:1px solid #ccd5ce;
-      border-radius:10px;background:white;font-size:16px}
-    button{margin-top:12px;background:#176b45;color:white;border:0;font-weight:bold}
-    .setting{display:grid;grid-template-columns:1fr 135px;gap:10px;align-items:center;
-      padding:7px 0;border-bottom:1px solid #edf0ed}
-    .setting input{padding:9px}
-    .item{display:flex;justify-content:space-between;gap:12px;
-      padding:12px 0;border-top:1px solid #edf0ed}
-    .delete{width:auto;margin:6px 0 0;padding:6px 10px;background:#f7eeee;color:#872f2f}
-    .warn{color:#a12f27;font-weight:bold}
-    .good{color:#176b45}
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f6f4;
+      color: #17221c;
+      font: 16px Arial, sans-serif;
+    }
+    main { max-width: 600px; margin: auto; padding: 18px; }
+    h1 { margin: 8px 0; }
+    h2 { font-size: 20px; }
+    .muted, small { color: #657168; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 14px 0;
+      box-shadow: 0 2px 10px #0000000d;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat {
+      background: #eef7f0;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 19px;
+    }
+    label { display: block; margin: 12px 0 5px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccd5ce;
+      border-radius: 10px;
+      background: white;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 12px;
+      background: #176b45;
+      color: white;
+      border: 0;
+      font-weight: bold;
+    }
+    .setting {
+      display: grid;
+      grid-template-columns: 1fr 135px;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid #edf0ed;
+    }
+    .setting input { padding: 9px; }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid #edf0ed;
+    }
+    .delete {
+      width: auto;
+      margin: 6px 0 0;
+      padding: 6px 10px;
+      background: #f7eeee;
+      color: #872f2f;
+    }
+    .warn { color: #a12f27; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -37,23 +89,26 @@
   <section class="card">
     <div class="grid">
       <div class="stat">Salariu<strong>6.000 lei</strong></div>
-      <div class="stat">Economii<strong id="savingView"></strong></div>
-      <div class="stat">Mâncare — rămas<strong id="foodLeft"></strong></div>
-      <div class="stat">Mâncare — disponibil/zi<strong id="foodDaily"></strong></div>
-      <div class="stat">Alte cheltuieli — rămas<strong id="otherLeft"></strong></div>
-      <div class="stat">Alte cheltuieli — disponibil/zi<strong id="otherDaily"></strong></div>
+      <div class="stat">Economii puse deoparte<strong id="savingView"></strong></div>
+      <div class="stat">Buget mâncare rămas<strong id="foodLeft"></strong></div>
+      <div class="stat">Mâncare disponibilă/zi<strong id="foodDaily"></strong></div>
+      <div class="stat">Alte cheltuieli rămase<strong id="otherLeft"></strong></div>
+      <div class="stat">Alte cheltuieli disponibile/zi<strong id="otherDaily"></strong></div>
     </div>
     <p id="budgetMessage" class="muted"></p>
   </section>
 
   <section class="card">
-    <h2>Bugetul perioadei</h2>
-    <p class="muted">Poți actualiza valorile facturilor când primești facturile noi.</p>
+    <h2>Facturi și bugete</h2>
+    <p class="muted">
+      Modifică sumele când primești facturile noi. Aceste sume sunt rezervate din salariu.
+    </p>
     <div id="settings"></div>
   </section>
 
   <form class="card" id="form">
     <h2>Adaugă o cheltuială</h2>
+
     <label for="category">Categorie</label>
     <select id="category">
       <option value="Mâncare">Mâncare</option>
@@ -87,184 +142,56 @@
 
 <script>
   const DATA_KEY = "bugetul-meu-date-v2";
+  const SALARY = 6000;
   const $ = id => document.getElementById(id);
-  const today = new Date();
-  const todayStr = dateString(today);
 
-  function dateString(d) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  function dateString(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   }
-  function parseDate(s) {
-    const [y,m,d] = s.split("-").map(Number);
-    return new Date(y,m-1,d);
+
+  function parseDate(value) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
   }
+
   function monthKey(date) {
-    const d = parseDate(date);
-    if (d.getDate() < 10) d.setMonth(d.getMonth()-1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   }
-  const anchor = new Date(2026, 10, 10); // 10 noiembrie 2026
-const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-let start;
-if (todayOnly < anchor) {
-  start = anchor;
-} else {
-  let offset =
-    (todayOnly.getFullYear() - anchor.getFullYear()) * 12 +
-    todayOnly.getMonth() - anchor.getMonth();
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = dateString(todayOnly);
 
-  start = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 10);
-  if (todayOnly < start) {
-    offset--;
+  // Prima perioadă începe pe 10 noiembrie 2026.
+  const anchor = new Date(2026, 10, 10);
+  let start;
+
+  if (todayOnly < anchor) {
+    start = new Date(anchor);
+  } else {
+    let offset =
+      (todayOnly.getFullYear() - anchor.getFullYear()) * 12 +
+      todayOnly.getMonth() - anchor.getMonth();
+
     start = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 10);
-  }
-}
 
-const end = new Date(start.getFullYear(), start.getMonth() + 1, 9);
-const currentKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
-const startStr = dateString(start);
-const endStr = dateString(end);
-const totalDays = Math.round((end - start) / 86400000) + 1;
-const daysLeft = Math.max(1, Math.round((end - todayOnly) / 86400000) + 1);
+    if (todayOnly < start) {
+      offset--;
+      start = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 10);
+    }
+  }
+
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 9);
+  const currentKey = monthKey(start);
+  const startStr = dateString(start);
+  const endStr = dateString(end);
+
+  // Dacă perioada încă nu a început, numără zilele de la data începerii.
+  const firstRemainingDay = todayOnly < start ? start : todayOnly;
+  const daysLeft = Math.max(
+    1,
+    Math.round((end - firstRemainingDay) / 86400000) + 1
+  );
 
   const defaults = {
-    "Hidroelectrica":400, "Apa Nova":350, "Engie":500,
-    "Digi":300, "Google":10, "Economii":100, "Mâncare":3000
-  };
-
-  let data;
-  try { data = JSON.parse(localStorage.getItem(DATA_KEY)) || {}; }
-  catch { data = {}; }
-  data.settings ||= {};
-  data.records ||= [];
-
-  // La începutul unei perioade noi, preia valorile perioadei precedente.
-  function getSettings() {
-    if (data.settings[currentKey]) return data.settings[currentKey];
-    const previous = new Date(cycleYear, cycleMonth-2, 10);
-    const prevKey = `${previous.getFullYear()}-${String(previous.getMonth()+1).padStart(2,"0")}`;
-    data.settings[currentKey] = {...(data.settings[prevKey] || defaults)};
-    save();
-    return data.settings[currentKey];
-  }
-  let settings = getSettings();
-
-  function save() {
-    localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  }
-  function lei(n) {
-    return Number(n).toLocaleString("ro-RO", {
-      minimumFractionDigits:2, maximumFractionDigits:2
-    }) + " lei";
-  }
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[c]));
-  }
-  function sumCategory(name, throughToday=true) {
-    return data.records
-      .filter(r => r.date >= startStr && r.date <= endStr &&
-        r.category === name && (!throughToday || r.date <= todayStr))
-      .reduce((sum,r) => sum + Number(r.amount), 0);
-  }
-
-  function renderSettings() {
-    $("settings").innerHTML = "";
-    Object.entries(settings).forEach(([name,value]) => {
-      const row = document.createElement("label");
-      row.className = "setting";
-      row.innerHTML = `<span>${escapeHtml(name)} (lei)</span>
-        <input type="number" min="0" step="0.01" value="${Number(value)}"
-          aria-label="${escapeHtml(name)} buget">`;
-      row.querySelector("input").addEventListener("input", e => {
-        settings[name] = Math.max(0, Number(e.target.value) || 0);
-        save();
-        render();
-      });
-      $("settings").append(row);
-    });
-  }
-
-  function render() {
-    $("period").textContent =
-      `Perioada ${start.toLocaleDateString("ro-RO")} – ${end.toLocaleDateString("ro-RO")}`;
-    $("savingView").textContent = lei(settings["Economii"]);
-    const bills = ["Hidroelectrica","Apa Nova","Engie","Digi","Google"]
-      .reduce((s,n) => s + Number(settings[n] || 0), 0);
-    const otherBudget = 6000 - bills - Number(settings["Economii"] || 0)
-      - Number(settings["Mâncare"] || 0);
-
-    const foodRemaining = Number(settings["Mâncare"] || 0) - sumCategory("Mâncare");
-    const otherRemaining = otherBudget - sumCategory("Alte cheltuieli");
-
-    $("foodLeft").textContent = lei(foodRemaining);
-    $("foodDaily").textContent = lei(foodRemaining / daysLeft);
-    $("otherLeft").textContent = lei(otherRemaining);
-    $("otherDaily").textContent = lei(otherRemaining / daysLeft);
-
-    const msg = otherBudget < 0
-      ? `Atenție: bugetele introduse depășesc salariul cu ${lei(-otherBudget)}.`
-      : `Buget pentru alte cheltuieli: ${lei(otherBudget)}. Zile rămase, inclusiv azi: ${daysLeft}.`;
-    $("budgetMessage").textContent = msg;
-    $("budgetMessage").className = otherBudget < 0 ? "warn" : "muted";
-
-    const rows = data.records
-      .filter(r => r.date >= startStr && r.date <= endStr)
-      .slice().sort((a,b) => b.date.localeCompare(a.date));
-    $("list").innerHTML = "";
-    if (!rows.length) {
-      $("list").innerHTML = '<p class="muted">Încă nu ai adăugat cheltuieli în această perioadă.</p>';
-      return;
-    }
-    rows.forEach(r => {
-      const item = document.createElement("div");
-      item.className = "item";
-      const info = document.createElement("div");
-      info.innerHTML = `<strong>${escapeHtml(r.category)}</strong><br>
-        <small>${escapeHtml(r.date)}${r.note ? " · " + escapeHtml(r.note) : ""}</small>`;
-      const right = document.createElement("div");
-      right.style.textAlign = "right";
-      right.innerHTML = `<strong>${lei(r.amount)}</strong>`;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "delete";
-      button.textContent = "Șterge";
-      button.onclick = () => {
-        data.records = data.records.filter(x => x.id !== r.id);
-        save(); render();
-      };
-      right.append(button);
-      item.append(info,right);
-      $("list").append(item);
-    });
-  }
-
-  $("date").value = todayStr;
-  renderSettings();
-  render();
-
-  $("form").addEventListener("submit", e => {
-    e.preventDefault();
-    const date = $("date").value;
-    if (date < startStr || date > endStr) {
-      alert(`Alege o dată din perioada ${startStr} – ${endStr}.`);
-      return;
-    }
-    data.records.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-      category: $("category").value,
-      amount: Number($("amount").value),
-      date,
-      note: $("note").value.trim()
-    });
-    save();
-    $("amount").value = "";
-    $("note").value = "";
-    $("date").value = todayStr;
-    render();
-  });
-</script>
-</body>
-</html>
+   
